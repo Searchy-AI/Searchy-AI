@@ -1,0 +1,13 @@
+{
+    "functions": {
+      "ai-api/main.py": {
+        "runtime": "python3.9"
+      }
+    },
+    "routes": [
+      {
+        "src": "/api/(.*)",
+        "dest": "/ai-api/main.py"
+      }
+    ]
+  }
