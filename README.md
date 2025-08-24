@@ -1,4 +1,4 @@
-# AI-Powered Multimodal Product Search Engine
+#Searchy - AI-Powered Multimodal Product Search Engine
 
 This project is an AI-driven semantic search system for e-commerce products (e.g., Walmart-style catalog), leveraging features like:
 
