@@ -19,7 +19,7 @@ const App = () => {
   return (
     <div className="flex flex-col min-h-screen">
       <CartProvider>
-        <Header
+        {/* <Header
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
           searchMode={searchMode}
@@ -31,7 +31,7 @@ const App = () => {
           glowActive={glowActive}
           setGlowActive={setGlowActive}
           navigate={navigate}
-        />
+        /> */}
         <main className="flex-grow bg-gray-50">
           <Routes>
             <Route path="/" element={<HeroPage />} />
@@ -52,7 +52,7 @@ const App = () => {
             <Route path="/cart" element={<CartPage />} />
           </Routes>
         </main>
-        <Footer />
+        {/* <Footer /> */}
       </CartProvider>
     </div>
   );
