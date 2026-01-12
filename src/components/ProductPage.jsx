@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-
+import { Heart, Star, ShoppingCart, Truck, MapPin, Clock, ChevronLeft } from 'lucide-react';
 import { useCart } from './CartContext';
 import Papa from 'papaparse';
 
@@ -64,12 +64,12 @@ const ProductPage = () => {
             if (row && row.customer_reviews) {
               try {
                 parsedReviews = JSON.parse(row.customer_reviews);
-              } catch {}
+              } catch { }
             }
             if ((!parsedReviews || parsedReviews.length === 0) && row && row.top_reviews) {
               try {
                 parsedReviews = JSON.parse(row.top_reviews);
-              } catch {}
+              } catch { }
             }
             setReviews(parsedReviews || []);
           }
@@ -77,152 +77,208 @@ const ProductPage = () => {
       });
   }, [product]);
 
-  if (loading) return <div className="p-8 text-center text-xl">Loading...</div>;
-  if (!product) return <div className="p-8 text-center text-xl">Product not found.</div>;
+  const price = product?.final_price ? parseFloat(product.final_price).toFixed(2) : 'N/A';
+  const rating = parseFloat(product?.rating || product?.rating_stars) || 0;
+  const reviewCount = parseInt(product?.review_count) || 0;
+
+  if (loading) return (
+    <div className="min-h-screen bg-[#FAFAFA] flex items-center justify-center">
+      <div className="text-center">
+        <div className="w-12 h-12 border-4 border-[#1A1A1A] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+        <p className="text-[#666]">Loading product...</p>
+      </div>
+    </div>
+  );
+  if (!product) return (
+    <div className="min-h-screen bg-[#FAFAFA] flex items-center justify-center">
+      <div className="text-center">
+        <p className="text-xl text-[#1A1A1A] mb-4">Product not found</p>
+        <button onClick={() => navigate('/')} className="text-[#666] hover:text-[#1A1A1A] flex items-center gap-2 mx-auto">
+          <ChevronLeft className="w-4 h-4" /> Back to Home
+        </button>
+      </div>
+    </div>
+  );
 
   const images = parseImages(product);
 
   return (
-    <>
-      
-      <div className="flex bg-gray-50 min-h-screen">
-        {/* Left: Images */}
-        <aside className="w-28 p-6 flex flex-col items-center space-y-2">
-          {images.map((img, idx) => (
-            <img
-              key={idx}
-              src={img}
-              alt={product.product_name || 'Product'}
-              className={`w-16 h-16 object-contain border rounded cursor-pointer ${mainImage === img ? 'ring-2 ring-blue-500' : ''}`}
-              onClick={() => setMainImage(img)}
-            />
-          ))}
-        </aside>
-        {/* Center: Main image and details */}
-        <main className="flex-1 flex p-8">
-          <div className="flex-1 flex flex-col items-center">
-            <img src={mainImage} alt={product.product_name || 'Product'} className="h-96 object-contain mb-4" />
-          </div>
-          {/* Product Info */}
-          <div className="flex-1 max-w-xl px-8">
-            <h1 className="text-2xl font-bold mb-2">{product.product_name || 'No Title'}</h1>
-            <div className="flex items-center mb-2">
-              <span className="text-yellow-400 mr-1">★</span>
-              <span className="font-semibold mr-2">{product.rating || product.rating_stars || 'N/A'}</span>
-              <span className="text-blue-600 underline cursor-pointer text-sm">{product.review_count || 0} ratings</span>
-            </div>
-            <div className="mb-4">
-              <span className="text-2xl font-bold">${Number(product.final_price).toFixed(2) || 'N/A'}</span>
-              {/* Add original price/discount if available */}
-            </div>
-            <div className="mb-4">
-              <h2 className="font-semibold mb-1">About this item</h2>
-              <ul className="list-disc ml-6 text-gray-700 text-sm">
-                <li>{product.product_name || 'No Title'}</li>
-                <li>{product.description || 'No description available.'}</li>
-                <li>Brand: {product.brand || 'N/A'}</li>
-                <li>Category: {product.category_name || 'N/A'}</li>
-                <li>Stock: {product.stock || 'N/A'}</li>
-                <li>SKU: {product.sku || 'N/A'}</li>
-                <li>Warranty: {product.warrantyInformation || 'N/A'}</li>
-                <li>Shipping: {product.shippingInformation || 'N/A'}</li>
-              </ul>
-            </div>
-            <div className="mb-4">
-              <a href="#" className="text-blue-600 underline text-sm">View full item details</a>
-            </div>
-            <div className="grid grid-cols-2 gap-2 mb-4">
-              <div className="bg-gray-100 rounded p-2 text-center">
-                <div className="text-xs text-gray-500">Brand</div>
-                <div className="font-semibold">{product.brand || 'N/A'}</div>
-              </div>
-              <div className="bg-gray-100 rounded p-2 text-center">
-                <div className="text-xs text-gray-500">Category</div>
-                <div className="font-semibold">{product.category_name || 'N/A'}</div>
-              </div>
-              <div className="bg-gray-100 rounded p-2 text-center">
-                <div className="text-xs text-gray-500">SKU</div>
-                <div className="font-semibold">{product.sku || 'N/A'}</div>
-              </div>
-              <div className="bg-gray-100 rounded p-2 text-center">
-                <div className="text-xs text-gray-500">Stock</div>
-                <div className="font-semibold">{product.stock || 'N/A'}</div>
-              </div>
-            </div>
-          </div>
-          {/* Sidebar: Add to cart and delivery */}
-          <aside className="w-80 bg-white rounded-lg shadow p-6 flex flex-col ml-8">
-            <div className="mb-4">
-              <span className="text-2xl font-bold">${Number(product.final_price).toFixed(2) || 'N/A'}</span>
-              <div className="text-xs text-gray-500">Price when purchased online</div>
-            </div>
-            <button
-              className={added ? "bg-green-600 text-white rounded px-4 py-3 font-semibold mb-4 hover:bg-green-700" : "bg-blue-600 text-white rounded px-4 py-3 font-semibold mb-4 hover:bg-blue-700"}
-              onClick={() => {
-                if (!added) {
-                  addToCart({
-                    id: product.product_id || product.sku || product.product_name,
-                    product_name: product.product_name,
-                    final_price: Number(product.final_price).toFixed(2),
-                    ...product
-                  });
-                  setAdded(true);
-                } else {
-                  navigate('/cart');
-                }
-              }}
-            >
-              {added ? 'Go to Cart' : 'Add to cart'}
-            </button>
-            <div className="mb-4">
-              <div className="bg-blue-50 p-2 rounded text-xs text-blue-700 mb-2">Pro Wall Hanging Service<br /><span className="text-gray-500">Accessory Wall Mounting - $65.00</span></div>
-            </div>
-            <div className="mb-4">
-              <div className="font-semibold mb-1">How you'll get this item:</div>
-              <div className="flex flex-col space-y-2">
-                <div className="flex items-center space-x-2">
-                  <input type="checkbox" className="form-checkbox" />
-                  <span className="text-sm">I want shipping & delivery savings with Walmart+</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="bg-gray-100 rounded px-2 py-1 text-xs">Shipping</div>
-                  <span className="text-xs text-gray-500">Arrives tomorrow</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="bg-gray-100 rounded px-2 py-1 text-xs">Pickup</div>
-                  <span className="text-xs text-gray-500">As soon as 5pm today</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="bg-gray-100 rounded px-2 py-1 text-xs">Delivery</div>
-                  <span className="text-xs text-gray-500">As soon as 1 hour</span>
-                </div>
-              </div>
-            </div>
-            <div className="text-xs text-gray-500">Arrives by Tomorrow</div>
-          </aside>
-        </main>
+    <div className="min-h-screen bg-[#FAFAFA]">
+      {/* Back Button */}
+      <div className="max-w-7xl mx-auto px-6 py-4">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-2 text-[#666] hover:text-[#1A1A1A] transition-colors text-sm"
+        >
+          <ChevronLeft className="w-4 h-4" />
+          Back to results
+        </button>
       </div>
-     {/* Reviews Section */}
-     <div className="max-w-3xl mx-auto mt-8 bg-white rounded shadow p-6">
-       <h2 className="text-xl font-bold mb-4">Customer Reviews</h2>
-       {reviews && reviews.length > 0 ? (
-         <ul className="space-y-4">
-           {reviews.map((review, idx) => (
-             <li key={idx} className="border-b pb-4">
-               <div className="flex items-center mb-1">
-                 <span className="text-yellow-400 mr-2">{'★'.repeat(review.rating || 0)}</span>
-                 <span className="font-semibold">{review.title || ''}</span>
-               </div>
-               <div className="text-gray-700 mb-1">{review.review}</div>
-               <div className="text-xs text-gray-500">{review.name || 'Anonymous'}</div>
-             </li>
-           ))}
-         </ul>
-       ) : (
-         <div className="text-gray-500">No reviews available for this product.</div>
-       )}
-     </div>
-    </>
+
+      <div className="max-w-7xl mx-auto px-6 pb-12">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* Left: Images */}
+          <div className="lg:col-span-1 flex lg:flex-col gap-2 order-2 lg:order-1">
+            {images.map((img, idx) => (
+              <button
+                key={idx}
+                onClick={() => setMainImage(img)}
+                className={`w-16 h-16 rounded-xl border-2 overflow-hidden transition-all duration-200 ${mainImage === img ? 'border-[#1A1A1A]' : 'border-[#E5E5E5] hover:border-[#CCC]'}`}
+              >
+                <img src={img} alt={`${product.product_name} ${idx + 1}`} className="w-full h-full object-contain" />
+              </button>
+            ))}
+          </div>
+
+          {/* Center: Main Image */}
+          <div className="lg:col-span-5 order-1 lg:order-2">
+            <div className="bg-white rounded-2xl border border-[#E5E5E5] p-8 sticky top-24">
+              <img src={mainImage} alt={product.product_name || 'Product'} className="w-full h-96 object-contain" />
+            </div>
+          </div>
+
+          {/* Right: Product Info */}
+          <div className="lg:col-span-6 order-3 space-y-6">
+            {/* Brand & Title */}
+            <div>
+              <span className="text-xs font-medium text-[#999] uppercase tracking-wide">{product.brand || 'Brand'}</span>
+              <h1 className="text-2xl font-semibold text-[#1A1A1A] mt-1 leading-tight">{product.product_name || 'No Title'}</h1>
+            </div>
+
+            {/* Rating */}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} className={`w-4 h-4 ${i < Math.floor(rating) ? 'text-amber-400 fill-amber-400' : 'text-[#E5E5E5]'}`} />
+                ))}
+              </div>
+              <span className="text-sm font-medium text-[#1A1A1A]">{rating > 0 ? rating.toFixed(1) : 'N/A'}</span>
+              <span className="text-sm text-[#666]">{reviewCount.toLocaleString()} reviews</span>
+            </div>
+
+            {/* Price Card */}
+            <div className="bg-white rounded-2xl border border-[#E5E5E5] p-6">
+              <div className="flex items-baseline gap-3 mb-4">
+                <span className="text-3xl font-bold text-[#1A1A1A]">${price}</span>
+                {product.original_price && parseFloat(product.original_price) > parseFloat(product.final_price) && (
+                  <span className="text-lg text-[#999] line-through">${parseFloat(product.original_price).toFixed(2)}</span>
+                )}
+              </div>
+              <p className="text-xs text-[#666] mb-6">Price when purchased online</p>
+
+              {/* Add to Cart Button */}
+              <button
+                onClick={() => {
+                  if (!added) {
+                    addToCart({
+                      id: product.product_id || product.sku || product.product_name,
+                      product_name: product.product_name,
+                      final_price: price,
+                      ...product
+                    });
+                    setAdded(true);
+                  } else {
+                    navigate('/cart');
+                  }
+                }}
+                className={`w-full py-3.5 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all duration-200 ${added
+                    ? 'bg-emerald-500 text-white hover:bg-emerald-600'
+                    : 'bg-[#1A1A1A] text-white hover:bg-[#333]'
+                  }`}
+              >
+                <ShoppingCart className="w-5 h-5" />
+                {added ? 'Go to Cart' : 'Add to Cart'}
+              </button>
+
+              {/* Wishlist Button */}
+              <button className="w-full py-3 mt-3 rounded-xl font-medium border-2 border-[#E5E5E5] text-[#1A1A1A] flex items-center justify-center gap-2 hover:border-[#CCC] transition-colors">
+                <Heart className="w-5 h-5" />
+                Add to Wishlist
+              </button>
+            </div>
+
+            {/* Delivery Options */}
+            <div className="bg-white rounded-2xl border border-[#E5E5E5] p-6">
+              <h3 className="font-semibold text-[#1A1A1A] mb-4">Delivery Options</h3>
+              <div className="space-y-4">
+                <div className="flex items-start gap-3 p-3 rounded-xl bg-[#FAFAFA]">
+                  <Truck className="w-5 h-5 text-[#666] mt-0.5" />
+                  <div>
+                    <p className="font-medium text-[#1A1A1A] text-sm">Free Shipping</p>
+                    <p className="text-xs text-[#666]">Arrives tomorrow</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 p-3 rounded-xl bg-[#FAFAFA]">
+                  <MapPin className="w-5 h-5 text-[#666] mt-0.5" />
+                  <div>
+                    <p className="font-medium text-[#1A1A1A] text-sm">Store Pickup</p>
+                    <p className="text-xs text-[#666]">Ready as soon as 5pm today</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 p-3 rounded-xl bg-[#FAFAFA]">
+                  <Clock className="w-5 h-5 text-[#666] mt-0.5" />
+                  <div>
+                    <p className="font-medium text-[#1A1A1A] text-sm">Express Delivery</p>
+                    <p className="text-xs text-[#666]">As soon as 1 hour</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Product Details */}
+            <div className="bg-white rounded-2xl border border-[#E5E5E5] p-6">
+              <h3 className="font-semibold text-[#1A1A1A] mb-4">About this item</h3>
+              <p className="text-sm text-[#666] leading-relaxed mb-6">{product.description || 'No description available.'}</p>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 rounded-xl bg-[#FAFAFA]">
+                  <p className="text-xs text-[#999] mb-1">Brand</p>
+                  <p className="font-medium text-[#1A1A1A] text-sm">{product.brand || 'N/A'}</p>
+                </div>
+                <div className="p-3 rounded-xl bg-[#FAFAFA]">
+                  <p className="text-xs text-[#999] mb-1">Category</p>
+                  <p className="font-medium text-[#1A1A1A] text-sm">{product.category_name || 'N/A'}</p>
+                </div>
+                <div className="p-3 rounded-xl bg-[#FAFAFA]">
+                  <p className="text-xs text-[#999] mb-1">SKU</p>
+                  <p className="font-medium text-[#1A1A1A] text-sm">{product.sku || 'N/A'}</p>
+                </div>
+                <div className="p-3 rounded-xl bg-[#FAFAFA]">
+                  <p className="text-xs text-[#999] mb-1">Stock</p>
+                  <p className="font-medium text-[#1A1A1A] text-sm">{product.stock || 'N/A'}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {/* Reviews Section */}
+      <div className="max-w-7xl mx-auto px-6 pb-12">
+        <div className="bg-white rounded-2xl border border-[#E5E5E5] p-6">
+          <h2 className="text-xl font-semibold text-[#1A1A1A] mb-6">Customer Reviews</h2>
+          {reviews && reviews.length > 0 ? (
+            <div className="space-y-4">
+              {reviews.map((review, idx) => (
+                <div key={idx} className="p-4 rounded-xl bg-[#FAFAFA] border-b border-[#E5E5E5] last:border-b-0">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="flex items-center gap-0.5">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} className={`w-3.5 h-3.5 ${i < (review.rating || 0) ? 'text-amber-400 fill-amber-400' : 'text-[#E5E5E5]'}`} />
+                      ))}
+                    </div>
+                    <span className="font-medium text-[#1A1A1A] text-sm">{review.title || ''}</span>
+                  </div>
+                  <p className="text-sm text-[#666] mb-2">{review.review}</p>
+                  <p className="text-xs text-[#999]">{review.name || 'Anonymous'}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-[#666]">No reviews available for this product.</p>
+          )}
+        </div>
+      </div>
+    </div>
   );
 };
 

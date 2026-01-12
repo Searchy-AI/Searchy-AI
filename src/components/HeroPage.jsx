@@ -1,130 +1,622 @@
-import React, { useEffect, useState, useRef } from 'react';
-import Navigation from './Navigation';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Camera, Search, X, Upload, ArrowUp } from 'lucide-react';
+import { useImageSearch } from './ImageSearchContext';
 
-const categories = [
-  { name: "Shoes", icon: "👟" },
-  { name: "Vitamins", icon: "💊" },
-  { name: "Curtains", icon: "🪟" },
-  { name: "Beauty", icon: "💄" },
-  { name: "Clothing", icon: "👕" },
+// Search categories for the unified search system
+const searchCategories = [
+  { id: 'movies', label: 'Movies', icon: '◉' },
+  { id: 'profiles', label: 'Profiles', icon: '◎' },
+  { id: 'products', label: 'Products', icon: '◇' },
 ];
 
-const HERO_INTERVAL = 5000; // ms (5 seconds)
+// Example search suggestions that rotate
+const searchExamples = [
+  'Find movies about redemption and hope',
+  'People who love minimalist design',
+  'Sustainable products for home office',
+  'Films with unreliable narrators',
+  'Experts in machine learning',
+  'Ergonomic standing desk setup',
+];
+
+// Feature highlights
+const features = [
+  {
+    title: 'Semantic Understanding',
+    description: 'Our AI understands context and meaning, not just keywords. Search naturally, get intelligent results.',
+    icon: '⬡',
+  },
+  {
+    title: 'Unified Search',
+    description: 'One powerful interface for movies, profiles, and products. Consistent experience across all content types.',
+    icon: '⬢',
+  },
+  {
+    title: 'Vector Intelligence',
+    description: 'Built on state-of-the-art embeddings that capture nuance and relationships in your data.',
+    icon: '△',
+  },
+];
+
+// Trusted by logos (placeholder representations)
+const trustedBy = ['Linear', 'Vercel', 'Stripe', 'Notion', 'Figma'];
 
 const HeroPage = () => {
-  const [products, setProducts] = useState([]);
-  const [heroIdx, setHeroIdx] = useState(0);
-  const [fade, setFade] = useState(true);
-  const intervalRef = useRef(null);
-  const fadeTimeoutRef = useRef(null);
+  const navigate = useNavigate();
+  const fileInputRef = useRef(null);
+  const [activeCategory, setActiveCategory] = useState('products');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [placeholderIndex, setPlaceholderIndex] = useState(0);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [mode, setMode] = useState('camera'); // 'camera', 'image', or 'search'
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [glowActive, setGlowActive] = useState(false);
+  const { selectedImage, setSelectedImage } = useImageSearch();
 
-  // Load products from dummydaata.json
+  // Rotate placeholder text
   useEffect(() => {
-    fetch('/dummydaata.json')
-      .then((res) => res.json())
-      .then((data) => setProducts(data.products || []));
+    const interval = setInterval(() => {
+      setPlaceholderIndex((prev) => (prev + 1) % searchExamples.length);
+    }, 3500);
+    return () => clearInterval(interval);
   }, []);
 
-  // Auto-advance hero carousel with fade transition
-  useEffect(() => {
-    if (products.length === 0) return;
-    intervalRef.current = setInterval(() => {
-      setFade(false); // Start fade out
-      fadeTimeoutRef.current = setTimeout(() => {
-        setHeroIdx((idx) => (idx + 1) % products.length);
-        setFade(true); // Fade in new product
-      }, 400); // Fade out duration
-    }, HERO_INTERVAL);
-    return () => {
-      clearInterval(intervalRef.current);
-      clearTimeout(fadeTimeoutRef.current);
-    };
-  }, [products]);
+  // Search logic
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (mode === 'search' && searchQuery.trim()) {
+      setGlowActive(true);
+      setTimeout(() => {
+        navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+      }, 50);
+    } else if (selectedImage) {
+      setGlowActive(true);
+      setTimeout(() => {
+        navigate(`/search?image=true`);
+      }, 50);
+    }
+  };
 
-  // Show only one product at a time in hero
-  const heroProduct = products[heroIdx] || null;
+  // Handle right button click
+  const handleRightButtonClick = (e) => {
+    if (mode === 'camera') {
+      setGlowActive(true);
+      setMode('image');
+      setSearchQuery('');
+      setSelectedImage(null);
+    } else if (mode === 'image' && selectedImage) {
+      handleSearch(e);
+    } else if (mode === 'image') {
+      setMode('camera');
+      setSelectedImage(null);
+      setSearchQuery('');
+    } else if (mode === 'search' && searchQuery.length > 0) {
+      handleSearch(e);
+    }
+  };
+
+  // When file is uploaded
+  const handleFileInput = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      handleImageUpload(file);
+      setMode('image');
+    }
+  };
+
+  // When user types
+  const handleSearchInputChange = (e) => {
+    setSearchQuery(e.target.value);
+    if (e.target.value.length > 0 && mode !== 'search') setMode('search');
+    if (e.target.value.length === 0 && mode === 'search') setMode('camera');
+    if (!glowActive && e.target.value.length > 0) {
+      setGlowActive(true);
+    }
+  };
+
+  const handleImageUpload = (file) => {
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setSelectedImage({
+          file: file,
+          preview: e.target.result
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      handleImageUpload(files[0]);
+      setMode('image');
+    }
+  };
+
+  const clearImage = () => {
+    setSelectedImage(null);
+  };
 
   return (
-    <div className="flex-grow flex flex-col bg-gray-50 min-h-screen">
-      <Navigation />
-      {/* Auto-scrolling Hero Section with fade transition */}
-      <section className="w-full bg-blue-600 py-10 px-2 md:px-8 flex items-center justify-center min-h-[340px] relative overflow-hidden">
-        {heroProduct && (
-          <div
-            className={`flex flex-col md:flex-row items-center justify-between w-full max-w-5xl mx-auto transition-opacity duration-500 ${fade ? 'opacity-100' : 'opacity-0'}`}
-          >
-            {/* Left: Text */}
-            <div className="flex-1 flex flex-col items-center md:items-start text-center md:text-left z-10">
-              <h1 className="text-3xl md:text-4xl font-extrabold text-white mb-3 drop-shadow-lg line-clamp-2">
-                {heroProduct.title}
-              </h1>
-              <p className="text-lg text-white mb-2 max-w-lg line-clamp-2">{heroProduct.description}</p>
-              <div className="text-2xl font-bold text-white mb-4">${heroProduct.price}</div>
-              <a
-                href="#"
-                className="inline-block bg-white text-blue-600 text-lg font-bold px-8 py-3 rounded-full shadow hover:bg-gray-100 transition"
-              >
-                Shop Now
-              </a>
+    <div className="min-h-screen bg-[#FAFAFA] text-[#1A1A1A] antialiased">
+      {/* Top Navigation - Slim, minimal */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#FAFAFA]/90 backdrop-blur-md border-b border-[#E5E5E5]">
+        <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
+          {/* Logo */}
+          <div className="flex items-center space-x-2">
+            <div className="w-7 h-7 bg-[#1A1A1A] rounded-lg flex items-center justify-center">
+              <span className="text-white text-xs font-bold">S</span>
             </div>
-            {/* Right: Image */}
-            <div className="flex-1 flex justify-center md:justify-end mt-8 md:mt-0 z-10">
-              <img
-                src={heroProduct.thumbnail || heroProduct.images?.[0]}
-                alt={heroProduct.title}
-                className="h-48 md:h-72 w-auto object-contain drop-shadow-2xl rounded-xl bg-white p-2"
-                draggable="false"
-              />
+            <span className="text-lg font-semibold tracking-tight">Semantix</span>
+          </div>
+
+          {/* Nav Links */}
+          <div className="hidden md:flex items-center space-x-8">
+            <a href="#features" className="text-sm text-[#666] hover:text-[#1A1A1A] transition-colors duration-200">
+              Features
+            </a>
+            <a href="#demo" className="text-sm text-[#666] hover:text-[#1A1A1A] transition-colors duration-200">
+              Demo
+            </a>
+            <a href="#pricing" className="text-sm text-[#666] hover:text-[#1A1A1A] transition-colors duration-200">
+              Pricing
+            </a>
+            <a href="#contact" className="text-sm text-[#666] hover:text-[#1A1A1A] transition-colors duration-200">
+              Contact
+            </a>
+          </div>
+
+          {/* CTA Buttons */}
+          <div className="flex items-center space-x-3">
+            <button className="text-sm text-[#666] hover:text-[#1A1A1A] transition-colors duration-200 hidden sm:block">
+              Sign in
+            </button>
+            <button className="text-sm bg-[#1A1A1A] text-white px-4 py-2 rounded-lg hover:bg-[#333] transition-colors duration-200">
+              Get started
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      {/* Hero Section */}
+      <section className="pt-32 pb-20 px-6">
+        <div className="max-w-4xl mx-auto text-center">
+          {/* Badge */}
+          <div className="inline-flex items-center space-x-2 bg-white border border-[#E5E5E5] rounded-full px-4 py-1.5 mb-8 shadow-sm">
+            <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+            <span className="text-xs text-[#666] font-medium">Now in public beta</span>
+          </div>
+
+          {/* Main Headline */}
+          <h1 className="text-5xl md:text-6xl lg:text-7xl font-semibold tracking-tight leading-[1.1] mb-6">
+            Intelligent search
+            <br />
+            <span className="text-[#999]">beyond keywords</span>
+          </h1>
+
+          {/* Subtitle */}
+          <p className="text-lg md:text-xl text-[#666] max-w-2xl mx-auto mb-12 leading-relaxed">
+            Semantix uses vector embeddings to understand meaning, not just text.
+            <br className="hidden md:block" />
+            Search how you think. Find what you mean.
+          </p>
+
+          {/* Category Toggle - Secondary Navigation */}
+          <div className="flex justify-center mb-8">
+            <div className="inline-flex items-center bg-white border border-[#E5E5E5] rounded-full p-1 shadow-sm">
+              {searchCategories.map((category) => (
+                <button
+                  key={category.id}
+                  onClick={() => setActiveCategory(category.id)}
+                  className={`flex items-center space-x-2 px-5 py-2 rounded-full text-sm font-medium transition-all duration-300 ${activeCategory === category.id
+                      ? 'bg-[#1A1A1A] text-white shadow-md'
+                      : 'text-[#666] hover:text-[#1A1A1A]'
+                    }`}
+                >
+                  <span className="text-xs">{category.icon}</span>
+                  <span>{category.label}</span>
+                </button>
+              ))}
             </div>
           </div>
-        )}
-        {/* Decorative background shape */}
-        <div className="absolute -right-32 -bottom-32 w-96 h-96 bg-blue-800 opacity-30 rounded-full blur-3xl z-0" />
-      </section>
 
-      {/* Deals of the Day */}
-      <section className="max-w-7xl mx-auto w-full py-10 px-4">
-        <h3 className="text-2xl font-bold text-gray-800 mb-6">Deals of the Day</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {products.slice(0, 8).map((product, idx) => (
-            <div
-              key={product.id || idx}
-              className="bg-white rounded-xl shadow p-4 flex flex-col items-center hover:shadow-lg transition"
-            >
-              <img
-                src={product.thumbnail || product.images?.[0]}
-                alt={product.title}
-                className="h-28 w-28 object-contain mb-2 rounded-lg bg-gray-50"
-                draggable="false"
-              />
-              <div className="font-semibold text-gray-700 text-center line-clamp-2 mb-1">{product.title}</div>
-              <div className="text-blue-600 font-bold mb-2">${product.price}</div>
-              <a
-                href="#"
-                className="text-sm text-blue-600 font-semibold hover:underline"
+          {/* Search Bar - The Hero Element */}
+          <div id="demo" className="max-w-2xl mx-auto">
+            <form onSubmit={handleSearch}>
+              <div
+                className={`relative bg-white rounded-2xl border-2 transition-all duration-300 shadow-lg ${isSearchFocused || glowActive
+                    ? 'border-[#1A1A1A] shadow-xl shadow-black/5'
+                    : isDragOver
+                      ? 'border-blue-400 shadow-xl shadow-blue-500/10'
+                      : 'border-[#E5E5E5] hover:border-[#CCC]'
+                  }`}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
               >
-                Shop Now
-              </a>
-            </div>
-          ))}
+                {/* Left Icon - Search or Upload */}
+                <div className="absolute left-5 top-1/2 -translate-y-1/2">
+                  {mode === 'image' ? (
+                    <Upload
+                      className={`w-5 h-5 transition-colors duration-200 ${isDragOver ? 'text-blue-500' : 'text-[#999]'
+                        }`}
+                    />
+                  ) : (
+                    <Search
+                      className={`w-5 h-5 transition-colors duration-200 ${isSearchFocused ? 'text-[#1A1A1A]' : 'text-[#999]'
+                        }`}
+                    />
+                  )}
+                </div>
+
+                {/* Text Search Input (camera/search mode) */}
+                {(mode === 'camera' || mode === 'search') && (
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={handleSearchInputChange}
+                    onFocus={() => setIsSearchFocused(true)}
+                    onBlur={() => setIsSearchFocused(false)}
+                    placeholder={searchExamples[placeholderIndex]}
+                    className="w-full pl-14 pr-32 py-5 text-lg bg-transparent outline-none placeholder:text-[#BBB] transition-all duration-200 rounded-2xl"
+                  />
+                )}
+
+                {/* Image Upload Area (image mode) */}
+                {mode === 'image' && (
+                  <div className="w-full pl-14 pr-32 py-5 min-h-[66px] flex items-center">
+                    {selectedImage ? (
+                      <div className="flex items-center space-x-3">
+                        <img
+                          src={selectedImage.preview}
+                          alt="Selected"
+                          className="w-10 h-10 object-cover rounded-lg border border-[#E5E5E5]"
+                        />
+                        <span className="text-sm text-[#666] truncate max-w-[200px]">
+                          {selectedImage.file.name}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={clearImage}
+                          className="p-1 rounded-full hover:bg-[#F0F0F0] transition-colors"
+                        >
+                          <X className="w-4 h-4 text-[#999] hover:text-[#666]" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center space-x-3 text-[#999]">
+                        <span className="text-base">
+                          {isDragOver ? 'Drop image here' : 'Drag & drop an image'}
+                        </span>
+                        <span className="text-[#CCC]">or</span>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*"
+                          onChange={handleFileInput}
+                          className="hidden"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="text-[#1A1A1A] hover:text-[#666] text-base font-medium transition-colors"
+                        >
+                          browse
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Right Action Button */}
+                <button
+                  type={(mode === 'search' && searchQuery.length > 0) || (mode === 'image' && selectedImage) ? 'submit' : 'button'}
+                  onClick={handleRightButtonClick}
+                  className={`absolute right-3 top-1/2 -translate-y-1/2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 flex items-center space-x-2 ${mode === 'camera'
+                      ? 'bg-[#F0F0F0] text-[#666] hover:bg-[#E5E5E5]'
+                      : (mode === 'search' && searchQuery.length > 0) || (mode === 'image' && selectedImage)
+                        ? 'bg-[#1A1A1A] text-white hover:bg-[#333]'
+                        : 'bg-[#F0F0F0] text-[#666] hover:bg-[#E5E5E5]'
+                    }`}
+                  aria-label={
+                    mode === 'camera' ? 'Switch to image search' :
+                      mode === 'image' && selectedImage ? 'Submit image search' :
+                        mode === 'image' ? 'Switch to text search' :
+                          'Submit search'
+                  }
+                >
+                  {mode === 'camera' ? (
+                    <>
+                      <Camera className="w-4 h-4" />
+                      <span className="hidden sm:inline">Image</span>
+                    </>
+                  ) : mode === 'image' && selectedImage ? (
+                    <>
+                      <span>Search</span>
+                      <ArrowUp className="w-4 h-4" />
+                    </>
+                  ) : mode === 'image' ? (
+                    <>
+                      <Search className="w-4 h-4" />
+                      <span className="hidden sm:inline">Text</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Search</span>
+                      <ArrowUp className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+
+            {/* Search Hint */}
+            <p className="text-xs text-[#999] mt-4">
+              {mode === 'image'
+                ? 'Upload an image to search visually • Supports JPG, PNG, WebP'
+                : 'Try: "cozy mystery films" • "designers who work remotely" • "minimal desk accessories"'
+              }
+            </p>
+          </div>
         </div>
       </section>
 
-      {/* Shop by Category */}
-      <section className="w-full bg-white py-8 px-2 md:px-8 border-t">
-        <h3 className="text-2xl font-bold text-gray-800 mb-6 ml-2">Shop by Category</h3>
-        <div className="flex space-x-8 overflow-x-auto pb-2">
-          {categories.map((cat, idx) => (
-            <div
-              key={idx}
-              className="flex flex-col items-center min-w-[120px] bg-blue-50 rounded-xl p-4 shadow hover:bg-blue-100 transition"
-            >
-              <span className="text-4xl mb-2">{cat.icon}</span>
-              <span className="font-semibold text-gray-700">{cat.name}</span>
+      {/* Visual Demo Section - Device Mockup */}
+      <section className="py-16 px-6">
+        <div className="max-w-5xl mx-auto">
+          <div className="relative bg-white rounded-3xl border border-[#E5E5E5] shadow-2xl shadow-black/5 overflow-hidden">
+            {/* Browser Chrome */}
+            <div className="flex items-center space-x-2 px-4 py-3 border-b border-[#E5E5E5] bg-[#FAFAFA]">
+              <div className="flex space-x-1.5">
+                <div className="w-3 h-3 rounded-full bg-[#FF5F57]"></div>
+                <div className="w-3 h-3 rounded-full bg-[#FFBD2E]"></div>
+                <div className="w-3 h-3 rounded-full bg-[#28CA41]"></div>
+              </div>
+              <div className="flex-1 flex justify-center">
+                <div className="bg-[#F0F0F0] rounded-lg px-4 py-1 text-xs text-[#999] font-mono">
+                  app.semantix.ai/search
+                </div>
+              </div>
             </div>
-          ))}
+
+            {/* Demo Content */}
+            <div className="p-8 md:p-12">
+              <div className="grid md:grid-cols-3 gap-6">
+                {/* Results Preview */}
+                {[1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className="bg-[#FAFAFA] rounded-xl p-5 border border-[#E5E5E5] hover:border-[#CCC] transition-colors duration-200"
+                  >
+                    <div className="w-full h-32 bg-gradient-to-br from-[#F0F0F0] to-[#E5E5E5] rounded-lg mb-4"></div>
+                    <div className="h-4 bg-[#E5E5E5] rounded w-3/4 mb-2"></div>
+                    <div className="h-3 bg-[#F0F0F0] rounded w-full mb-1"></div>
+                    <div className="h-3 bg-[#F0F0F0] rounded w-5/6"></div>
+                    <div className="flex items-center justify-between mt-4">
+                      <div className="h-3 bg-emerald-100 text-emerald-600 rounded px-2 py-0.5 text-xs font-medium">
+                        98% match
+                      </div>
+                      <div className="h-3 bg-[#F0F0F0] rounded w-16"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </section>
+
+      {/* Trusted By Section */}
+      <section className="py-16 px-6 border-t border-[#E5E5E5]">
+        <div className="max-w-4xl mx-auto text-center">
+          <p className="text-xs text-[#999] uppercase tracking-widest mb-8">Trusted by teams at</p>
+          <div className="flex items-center justify-center flex-wrap gap-8 md:gap-12">
+            {trustedBy.map((company) => (
+              <span key={company} className="text-xl font-semibold text-[#CCC] hover:text-[#999] transition-colors duration-200">
+                {company}
+              </span>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section id="features" className="py-24 px-6 bg-white">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-semibold tracking-tight mb-4">
+              Built for understanding
+            </h2>
+            <p className="text-[#666] max-w-lg mx-auto">
+              Traditional search looks for keywords. Semantix understands concepts, relationships, and intent.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {features.map((feature, index) => (
+              <div
+                key={index}
+                className="group p-8 rounded-2xl border border-[#E5E5E5] hover:border-[#CCC] hover:shadow-lg transition-all duration-300 bg-[#FAFAFA]"
+              >
+                <div className="w-12 h-12 bg-[#1A1A1A] rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                  <span className="text-white text-lg">{feature.icon}</span>
+                </div>
+                <h3 className="text-lg font-semibold mb-3">{feature.title}</h3>
+                <p className="text-[#666] text-sm leading-relaxed">{feature.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works */}
+      <section className="py-24 px-6 border-t border-[#E5E5E5]">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-semibold tracking-tight mb-4">
+              How it works
+            </h2>
+            <p className="text-[#666] max-w-lg mx-auto">
+              Three simple steps to intelligent search
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-12">
+            {[
+              { step: '01', title: 'Connect', desc: 'Point Semantix at your data sources — databases, APIs, or file systems.' },
+              { step: '02', title: 'Index', desc: 'We automatically generate semantic embeddings for all your content.' },
+              { step: '03', title: 'Search', desc: 'Your users search naturally and get results ranked by meaning, not keywords.' },
+            ].map((item, index) => (
+              <div key={index} className="text-center">
+                <div className="text-5xl font-light text-[#E5E5E5] mb-4">{item.step}</div>
+                <h3 className="text-lg font-semibold mb-2">{item.title}</h3>
+                <p className="text-[#666] text-sm">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing Section */}
+      <section id="pricing" className="py-24 px-6 bg-[#1A1A1A] text-white">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-semibold tracking-tight mb-4">
+              Simple, transparent pricing
+            </h2>
+            <p className="text-[#999] max-w-lg mx-auto">
+              Start free, scale as you grow
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+            {[
+              { name: 'Starter', price: 'Free', desc: 'For side projects', features: ['10K queries/mo', '1 data source', 'Community support'] },
+              { name: 'Pro', price: '$49', desc: 'For growing teams', features: ['100K queries/mo', 'Unlimited sources', 'Priority support', 'Analytics'], featured: true },
+              { name: 'Enterprise', price: 'Custom', desc: 'For large organizations', features: ['Unlimited queries', 'Custom SLA', 'Dedicated support', 'On-premise option'] },
+            ].map((plan, index) => (
+              <div
+                key={index}
+                className={`p-8 rounded-2xl ${plan.featured
+                    ? 'bg-white text-[#1A1A1A] shadow-2xl scale-105'
+                    : 'bg-[#2A2A2A] border border-[#333]'
+                  }`}
+              >
+                <div className="text-sm font-medium mb-2 opacity-60">{plan.name}</div>
+                <div className="text-4xl font-semibold mb-1">{plan.price}</div>
+                <div className="text-sm opacity-60 mb-6">{plan.desc}</div>
+                <ul className="space-y-3 mb-8">
+                  {plan.features.map((feature, i) => (
+                    <li key={i} className="flex items-center text-sm">
+                      <svg className="w-4 h-4 mr-2 opacity-60" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  className={`w-full py-3 rounded-xl font-medium transition-colors duration-200 ${plan.featured
+                      ? 'bg-[#1A1A1A] text-white hover:bg-[#333]'
+                      : 'bg-white text-[#1A1A1A] hover:bg-[#F0F0F0]'
+                    }`}
+                >
+                  Get started
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-24 px-6">
+        <div className="max-w-3xl mx-auto text-center">
+          <h2 className="text-3xl md:text-4xl font-semibold tracking-tight mb-4">
+            Ready to search smarter?
+          </h2>
+          <p className="text-[#666] mb-8 max-w-lg mx-auto">
+            Join thousands of developers building intelligent search experiences with Semantix.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <button className="bg-[#1A1A1A] text-white px-8 py-4 rounded-xl font-medium hover:bg-[#333] transition-colors duration-200 flex items-center space-x-2">
+              <span>Start building for free</span>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+              </svg>
+            </button>
+            <button className="text-[#666] hover:text-[#1A1A1A] px-8 py-4 font-medium transition-colors duration-200">
+              View documentation
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer id="contact" className="py-12 px-6 border-t border-[#E5E5E5]">
+        <div className="max-w-5xl mx-auto">
+          <div className="grid md:grid-cols-4 gap-8 mb-12">
+            {/* Brand */}
+            <div>
+              <div className="flex items-center space-x-2 mb-4">
+                <div className="w-7 h-7 bg-[#1A1A1A] rounded-lg flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">S</span>
+                </div>
+                <span className="text-lg font-semibold tracking-tight">Semantix</span>
+              </div>
+              <p className="text-sm text-[#999]">
+                Intelligent search infrastructure for modern applications.
+              </p>
+            </div>
+
+            {/* Links */}
+            {[
+              { title: 'Product', links: ['Features', 'Pricing', 'Docs', 'API'] },
+              { title: 'Company', links: ['About', 'Blog', 'Careers', 'Contact'] },
+              { title: 'Legal', links: ['Privacy', 'Terms', 'Security'] },
+            ].map((section, index) => (
+              <div key={index}>
+                <div className="text-sm font-semibold mb-4">{section.title}</div>
+                <ul className="space-y-2">
+                  {section.links.map((link, i) => (
+                    <li key={i}>
+                      <a href="#" className="text-sm text-[#666] hover:text-[#1A1A1A] transition-colors duration-200">
+                        {link}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex flex-col md:flex-row items-center justify-between pt-8 border-t border-[#E5E5E5]">
+            <p className="text-sm text-[#999]">© 2026 Semantix. All rights reserved.</p>
+            <div className="flex items-center space-x-4 mt-4 md:mt-0">
+              {['Twitter', 'GitHub', 'Discord'].map((social) => (
+                <a key={social} href="#" className="text-sm text-[#999] hover:text-[#1A1A1A] transition-colors duration-200">
+                  {social}
+                </a>
+              ))}
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };

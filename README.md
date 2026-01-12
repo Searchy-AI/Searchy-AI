@@ -1,114 +1,232 @@
-#Searchy - AI-Powered Multimodal Product Search Engine
+<!-- <p align="center">
+  <img src="public/logo.png" alt="Searchy AI Logo" width="80" height="80" />
+</p> -->
 
-This project is an AI-driven semantic search system for e-commerce products (e.g., Walmart-style catalog), leveraging features like:
+<h1 align="center">Searchy AI</h1>
 
-- 💬 Natural language prompts ("A red shirt with black dots")
-- 🖼️ Visual queries (image-only search)
-- 🧠 Abstract contextual prompts ("Shoes that go well with a maroon shirt and cream pants")
-- 👨🏼‍⚕️ Your personal shopping assistant!
+<p align="center">
+  <strong>Intelligent search beyond keywords</strong>
+</p>
 
----
+<p align="center">
+  Search how you think. Find what you mean.
+</p>
 
-## ⚙️ Tech Stack
+<p align="center">
+  <a href="#features">Features</a> •
+  <a href="#demo">Demo</a> •
+  <a href="#getting-started">Getting Started</a> •
+  <a href="#documentation">Docs</a> •
+  <a href="#roadmap">Roadmap</a>
+</p>
 
-| Component      | Description                                                  |
-|----------------|--------------------------------------------------------------|
-| **Python**     | Core programming language for data processing and pipelines  |
-| **Cohere (embed-v4.0)** | Embedding model for text and image (multimodal embeddings) |
-| **Pinecone**   | Vector database for fast similarity search and retrieval     |
-
----
-
-## 🧠 Features
-
-### 1. 🔍 Natural Language Search
-- Full-text search using user prompts.
-- Supports descriptive and abstract queries.
-- Embedded using Cohere’s `embed-v4.0`.
-- Supports 9 Languages: English, German, Portuguese, Hindi, Arabic, Spanish, Chinese(simplified), French, Italian. 
-
-### 2. 🖼️ Image-Based Search
-- Product images embedded using Cohere.
-- Supports similarity search using only visual signals.
-- Finds products similar to an image provided by the user.
-
-### 3. 🧠 Multimodal Query Understanding
-- Queries like *"shoes that go with maroon shirt"* are supported.
-- System combines image + text features to rank best matches.
+<p align="center">
+  <img src="https://img.shields.io/badge/status-private%20beta-green" alt="Status" />
+  <img src="https://img.shields.io/badge/license-MIT-blue" alt="License" />
+  <img src="https://img.shields.io/badge/PRs-welcome-brightgreen" alt="PRs Welcome" />
+</p>
 
 ---
 
-## 🗃️ Data Flow
+## 🎯 What is Searchy AI?
 
-1. **Load Dataset** (`walmart-products.csv`)
-    - Fields: SKU, title, description, specifications, reviews, images, etc.
+**Searchy AI** is a next-generation semantic search engine that understands *meaning*, not just text. Built on state-of-the-art multimodal AI, it enables users to search using natural language, images, or both — delivering results that truly match intent.
 
-2. **Preprocessing**
-    - Combine product specs, reviews, attributes into rich text blobs.
-    - Convert image files to base64-encoded data URIs.
-
-3. **Embedding**
-    - Text and/or image passed to `co.embed()` (Cohere v4).
-    - Mode: `search_document` for indexing, `search_query` for querying.
-
-4. **Vector Upsert to Pinecone**
-    - Indexed using unique product IDs.
-    - Metadata includes brand, price, category, etc.
-
-5. **Querying**
-    - User prompt → Cohere embed → Pinecone search
-    - Return top N most semantically relevant results
+> "Find a cozy sweater that matches my blue jeans" → Searchy AI understands context, style, and compatibility.
 
 ---
 
-## 🧪 Sample Queries
+## ✨ Features
 
-- `"a cotton shirt with tribal prints"`
-- `"black running shoes with red laces"`
-- `"a backpack that matches my cream denim"`
-- `upload an image of a sandal` → returns visually similar items
+### 🗣️ Natural Language Search
+Describe what you're looking for in plain English. No keywords needed.
+- *"A lightweight laptop bag for daily commute"*
+- *"Comfortable running shoes for flat feet"*
+- *"Birthday gift ideas for a 10-year-old who loves science"*
+
+### 🖼️ Visual Search
+Upload an image and find similar products instantly. Perfect for when words aren't enough.
+
+### 🧠 Contextual Understanding
+Go beyond basic matching. Searchy AI understands abstract concepts and relationships.
+- *"Shoes that go well with a maroon shirt and cream pants"*
+- *"Home office setup for a minimalist aesthetic"*
+
+### 🌍 Multilingual Support
+Search in 9 languages: English, German, Portuguese, Hindi, Arabic, Spanish, Chinese (Simplified), French, and Italian.
 
 ---
 
-## 📦 Future Improvements
+## 🚀 Demo
 
-- Contextual outfit suggestions (via LLM+fashion graph)
-- Hybrid filters (e.g., color + embedding score)
-- User preference modeling
-- Use LLM (e.g., GPT-4, Gemini) to rewrite abstract prompts for improved accuracy.
-
----
-
-## 📁 File Structure(WIP)
+Experience Searchy AI in action:
 
 ```
-├── embed_and_upsert.py     # Main logic for loading, embedding, and indexing
-├── .env                    # API keys for Cohere and Pinecone
-├── walmart-products.csv    # Raw product data
-├── utils/
-│   ├── image_to_base64.py  # Image conversion helpers
-│   └── prompt_rewriter.py  # (Optional) LLM-based query rewriter
-├── README.md
+🔗 Live Demo: https://searchy.online
 ```
+
+### Try These Searches:
+| Type | Example |
+|------|---------|
+| Descriptive | *"black running shoes with red accents"* |
+| Abstract | *"a backpack that matches cream denim"* |
+| Visual | Upload any product image |
+| Contextual | *"weekend brunch outfit ideas"* |
 
 ---
 
-## 🔐 Environment Variables (.env)
+## 🛠️ Getting Started
+
+### Prerequisites
+- Node.js 18+
+- Python 3.10+
+- pnpm (recommended)
+
+### Quick Start
+
+```bash
+# Clone the repository
+git clone https://github.com/adityaanand176/searchy-ai.git
+cd searchy-ai
+
+# Install frontend dependencies
+pnpm install
+
+# Install backend dependencies
+pip install -r requirements.txt
+
+# Set up environment variables
+cp .env.example .env
+# Add your API keys to .env
+
+# Start the development server
+pnpm dev
 ```
+
+### Environment Variables
+
+Create a `.env` file with:
+
+```env
 COHERE_API_KEY=your_cohere_api_key
 PINECONE_API_KEY=your_pinecone_api_key
 ```
 
 ---
 
-## 📚 References
-- [Cohere Embed API](https://docs.cohere.com/reference/embed)
-- [Pinecone Docs](https://docs.pinecone.io)
+## 📖 Documentation
+
+### Architecture
+
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│   React Frontend │ ──▶ │   FastAPI       │ ──▶ │   Cohere        │
+│   (Vite + TW)    │     │   Backend       │     │   Embeddings    │
+└─────────────────┘     └─────────────────┘     └─────────────────┘
+                                │                        │
+                                ▼                        ▼
+                        ┌─────────────────┐     ┌─────────────────┐
+                        │   Express.js    │     │   Pinecone      │
+                        │   API Gateway   │     │   Vector DB     │
+                        └─────────────────┘     └─────────────────┘
+```
+
+### Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Frontend | React, Vite, Tailwind CSS |
+| Backend | FastAPI (Python), Express.js |
+| AI/ML | Cohere embed-v4.0 (multimodal) |
+| Vector DB | Pinecone |
+| Deployment | Vercel / Railway |
 
 ---
 
-## 🧑‍💻 Author
-Built by:
-- [Krish Das](https://www.linkedin.com/in/krish-das-215aa4278/)
-- [Aditya Anand](https://www.linkedin.com/in/aditya-astralite-anand/)
-- [Yash Raj Singh](https://www.linkedin.com/in/yashhhhh/)
+## 🗺️ Roadmap
+
+- [x] Natural language search
+- [x] Image-based visual search
+- [x] Multimodal query support
+- [x] Multilingual support (9 languages)
+- [ ] Personalized recommendations
+- [ ] Outfit/style suggestions via AI
+- [ ] Hybrid filtering (semantic + attributes)
+- [ ] Voice search integration
+- [ ] Browser extension
+- [ ] Mobile app (iOS/Android)
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+```bash
+# Fork the repo
+# Create your feature branch
+git checkout -b feature/amazing-feature
+
+# Commit your changes
+git commit -m 'Add amazing feature'
+
+# Push to the branch
+git push origin feature/amazing-feature
+
+# Open a Pull Request
+```
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 💬 Community & Support
+
+- 📧 **Email**: hello@searchy.ai
+- 🐦 **Twitter**: [@SearchyAI](https://twitter.com/searchyai)
+- 💼 **LinkedIn**: [Searchy AI](https://linkedin.com/company/searchy-ai)
+- 💬 **Discord**: [Join our community](https://discord.gg/searchyai)
+
+---
+
+## 👥 Team
+
+<table>
+  <tr>
+    <td align="center">
+      <a href="https://www.linkedin.com/in/krish-das-215aa4278/">
+        <strong>Krish Das</strong>
+      </a>
+      <br />
+      Co-founder
+    </td>
+    <td align="center">
+      <a href="https://www.linkedin.com/in/aditya-astralite-anand/">
+        <strong>Aditya Anand</strong>
+      </a>
+      <br />
+      Co-founder
+    </td>
+    <td align="center">
+      <a href="https://www.linkedin.com/in/yashhhhh/">
+        <strong>Yash Raj Singh</strong>
+      </a>
+      <br />
+      Co-founder
+    </td>
+  </tr>
+</table>
+
+---
+
+<p align="center">
+  <strong>Searchy AI</strong> — Search smarter, not harder.
+</p>
+
+<p align="center">
+  ⭐ Star us on GitHub if you find this useful!
+</p>
