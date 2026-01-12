@@ -1,6 +1,21 @@
+# Core dependencies
 cohere
 pinecone[grpc]
 pandas
 python-dotenv
 tqdm
 fastapi
+uvicorn
+
+# Database (Multi-tenant SaaS)
+sqlalchemy
+psycopg2-binary
+alembic
+
+# Authentication & Security
+pydantic[email]
+pyjwt
+
+# Async support
+aiohttp
+httpx
