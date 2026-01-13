@@ -140,93 +140,64 @@ def get_or_create_tenant_from_oauth(
 # Google OAuth
 # =====================
 
-@router.get("/google")
-async def google_login():
-    """Redirect to Google OAuth consent screen."""
+class GoogleLoginRequest(BaseModel):
+    credential: str
+
+@router.post("/google")
+async def verify_google_token(request: GoogleLoginRequest, db: Session = Depends(get_db)):
+    """Verify Google ID Token from frontend."""
     if not GOOGLE_CLIENT_ID:
         raise HTTPException(
             status_code=501,
             detail={"message": "Google OAuth not configured"}
         )
     
-    redirect_uri = f"{FRONTEND_URL.rstrip('/')}/api/auth/google/callback"
-    scope = "openid email profile"
-    
-    auth_url = (
-        f"https://accounts.google.com/o/oauth2/v2/auth?"
-        f"client_id={GOOGLE_CLIENT_ID}&"
-        f"redirect_uri={redirect_uri}&"
-        f"response_type=code&"
-        f"scope={scope}&"
-        f"access_type=offline&"
-        f"prompt=consent"
-    )
-    
-    return RedirectResponse(url=auth_url)
-
-
-@router.get("/google/callback")
-async def google_callback(code: str, db: Session = Depends(get_db)):
-    """Handle Google OAuth callback."""
-    if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
-        raise HTTPException(
-            status_code=501,
-            detail={"message": "Google OAuth not configured"}
+    try:
+        from google.oauth2 import id_token
+        from google.auth.transport import requests
+        
+        # Verify token
+        id_info = id_token.verify_oauth2_token(
+            request.credential, 
+            requests.Request(), 
+            GOOGLE_CLIENT_ID
         )
-    
-    redirect_uri = f"{FRONTEND_URL.rstrip('/')}/api/auth/google/callback"
-    
-    # Exchange code for tokens
-    async with httpx.AsyncClient() as client:
-        token_response = await client.post(
-            "https://oauth2.googleapis.com/token",
-            data={
-                "client_id": GOOGLE_CLIENT_ID,
-                "client_secret": GOOGLE_CLIENT_SECRET,
-                "code": code,
-                "grant_type": "authorization_code",
-                "redirect_uri": redirect_uri,
+        
+        # Determine user info
+        email = id_info['email']
+        name = id_info.get('name', '')
+        provider_id = id_info['sub']
+        
+        # Create or update tenant
+        tenant, api_key, is_new = get_or_create_tenant_from_oauth(
+            db=db,
+            email=email,
+            name=name,
+            provider="google",
+            provider_id=provider_id,
+        )
+        
+        # Create session token
+        token = create_jwt_token(str(tenant.id), tenant.email)
+        
+        return {
+            "success": True,
+            "token": token,
+            "api_key_hint": api_key if is_new else (api_key[:12] + "..." if api_key else None), # Logic needs fixing slightly
+            "tenant": {
+                "id": str(tenant.id),
+                "name": tenant.name,
+                "email": tenant.email,
+                "plan": tenant.plan,
+                "status": tenant.status,
             }
-        )
+        }
         
-        if token_response.status_code != 200:
-            raise HTTPException(
-                status_code=400,
-                detail={"message": "Failed to exchange code for token"}
-            )
-        
-        tokens = token_response.json()
-        
-        # Get user info
-        user_response = await client.get(
-            "https://www.googleapis.com/oauth2/v2/userinfo",
-            headers={"Authorization": f"Bearer {tokens['access_token']}"}
-        )
-        
-        if user_response.status_code != 200:
-            raise HTTPException(
-                status_code=400,
-                detail={"message": "Failed to get user info"}
-            )
-        
-        user_info = user_response.json()
-    
-    # Create or get tenant
-    tenant, api_key, is_new = get_or_create_tenant_from_oauth(
-        db=db,
-        email=user_info["email"],
-        name=user_info.get("name", ""),
-        provider="google",
-        provider_id=user_info["id"],
-    )
-    
-    # Redirect to dashboard with token
-    token = create_jwt_token(str(tenant.id), tenant.email)
-    redirect_url = f"{FRONTEND_URL}/dashboard?token={token}"
-    if is_new and api_key:
-        redirect_url += f"&api_key={api_key}&new=true"
-    
-    return RedirectResponse(url=redirect_url)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail={"message": f"Invalid token: {str(e)}"})
+    except ImportError:
+        raise HTTPException(status_code=500, detail={"message": "google-auth library not installed"})
+
 
 
 # =====================

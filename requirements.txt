@@ -19,3 +19,5 @@ pyjwt
 # Async support
 aiohttp
 httpx
+google-auth
+requests
