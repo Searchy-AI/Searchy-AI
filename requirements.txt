@@ -5,6 +5,7 @@ pandas
 python-dotenv
 tqdm
 fastapi
+fastapi[standard]
 uvicorn
 
 # Database (Multi-tenant SaaS)
