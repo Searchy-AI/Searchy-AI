@@ -15,6 +15,7 @@ Legacy Endpoints (for backwards compatibility):
 - /embed-image - Image embedding search
 """
 import os
+import time
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -134,21 +135,42 @@ if PINECONE_API_KEY:
 async def embed_text(request: EmbedRequest) -> ProductListResponse:
     """
     [LEGACY] Text embedding search on Walmart dataset.
-    
+
     Use /v1/indices/{name}/search for multi-tenant search.
     """
     if not cohere_client:
         raise Exception("Cohere client not initialized")
-    
-    embedding = cohere_client.get_text_embeddings(request.query)
 
-    # Run blocking sync methods in threads concurrently
+    t0 = time.perf_counter()
+
+    # Step 1: Cohere text embedding
+    embedding = cohere_client.get_text_embeddings(request.query)
+    t1 = time.perf_counter()
+
+    # Step 2: Query both Pinecone indexes concurrently
     text_task = asyncio.to_thread(pinecone_clients["text"].query, embedding, "text")
     image_task = asyncio.to_thread(pinecone_clients["image"].query, embedding, "image")
-
     text_results, image_results = await asyncio.gather(text_task, image_task)
+    t2 = time.perf_counter()
 
+    # Step 3: Merge & sort
     products = sort_products(text_results, image_results)
+    t3 = time.perf_counter()
+
+    total_ms = (t3 - t0) * 1000
+    breakdown = (
+        f"\n{'='*55}\n"
+        f"  /embed-text  timing breakdown\n"
+        f"{'='*55}\n"
+        f"  Cohere text embedding   : {(t1-t0)*1000:>8.1f} ms\n"
+        f"  Pinecone text + image   : {(t2-t1)*1000:>8.1f} ms\n"
+        f"  sort_products           : {(t3-t2)*1000:>8.1f} ms\n"
+        f"  ──────────────────────────────\n"
+        f"  TOTAL                   : {total_ms:>8.1f} ms\n"
+        f"  Results                 : {len(products)}\n"
+        f"{'='*55}"
+    )
+    print(breakdown)
 
     return ProductListResponse(products=products)
 
@@ -157,21 +179,43 @@ async def embed_text(request: EmbedRequest) -> ProductListResponse:
 async def embed_image(request: ImageEmbedRequest) -> ProductListResponse:
     """
     [LEGACY] Image embedding search on Walmart dataset.
-    
+
     Use /v1/indices/{name}/search for multi-tenant search.
     """
     if not cohere_client:
         raise Exception("Cohere client not initialized")
-    
+
+    t0 = time.perf_counter()
+
+    # Step 1: Cohere image embedding
     embedding = cohere_client.get_image_embeddings(f"data:{request.image_type};base64,{request.image}")
-    
-    # Run blocking sync methods in threads concurrently
+    t1 = time.perf_counter()
+
+    # Step 2: Query both Pinecone indexes concurrently
     text_task = asyncio.to_thread(pinecone_clients["text"].query, embedding, "text")
     image_task = asyncio.to_thread(pinecone_clients["image"].query, embedding, "image")
-
     text_results, image_results = await asyncio.gather(text_task, image_task)
+    t2 = time.perf_counter()
 
+    # Step 3: Merge & sort
     products = sort_products(text_results, image_results)
+    t3 = time.perf_counter()
+
+    total_ms = (t3 - t0) * 1000
+    breakdown = (
+        f"\n{'='*55}\n"
+        f"  /embed-image  timing breakdown\n"
+        f"{'='*55}\n"
+        f"  Cohere image embedding   : {(t1-t0)*1000:>8.1f} ms\n"
+        f"  Pinecone text + image    : {(t2-t1)*1000:>8.1f} ms\n"
+        f"  sort_products            : {(t3-t2)*1000:>8.1f} ms\n"
+        f"  ──────────────────────────────\n"
+        f"  TOTAL                    : {total_ms:>8.1f} ms\n"
+        f"  Results                  : {len(products)}\n"
+        f"{'='*55}"
+    )
+    print(breakdown)
+
     return ProductListResponse(products=products)
 
 
