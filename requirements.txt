@@ -5,7 +5,7 @@ pandas
 python-dotenv
 tqdm
 uvicorn
-'uvicorn[standard]'
+uvicorn[standard]
 fastapi
 sqlalchemy
 psycopg2-binary
