@@ -4,7 +4,13 @@ pinecone[grpc]
 pandas
 python-dotenv
 tqdm
-<<<<<<< Updated upstream
+uvicorn
+'uvicorn[standard]'
 fastapi
-=======
-fastapi
+sqlalchemy
+psycopg2-binary
+alembic
+pydantic[email]
+pyjwt
+aiohttp
+httpx
