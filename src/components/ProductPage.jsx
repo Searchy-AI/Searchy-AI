@@ -4,7 +4,7 @@ import { Heart, Star, ShoppingCart, Truck, MapPin, Clock, ChevronLeft } from 'lu
 import { useCart } from './CartContext';
 import Papa from 'papaparse';
 
-const BACKEND_URL = 'http://localhost:4000';
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
 
 function parseImages(product) {
   if (product.main_image && product.main_image.startsWith('http')) return [product.main_image];
