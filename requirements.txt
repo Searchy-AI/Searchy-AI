@@ -3,4 +3,23 @@ pinecone[grpc]
 pandas
 python-dotenv
 tqdm
+<<<<<<< Updated upstream
 fastapi
+=======
+fastapi
+fastapi[standard]
+uvicorn
+
+# Database (Multi-tenant SaaS)
+sqlalchemy
+psycopg2-binary
+alembic
+
+# Authentication & Security
+pydantic[email]
+pyjwt
+
+# Async support
+aiohttp
+httpx
+>>>>>>> Stashed changes
