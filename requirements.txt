@@ -9,6 +9,7 @@ fastapi
 fastapi
 fastapi[standard]
 uvicorn
+'uvicorn[standard]'
 
 # Database (Multi-tenant SaaS)
 sqlalchemy
