@@ -67,6 +67,7 @@ function normalize(str) {
 
 // Product details endpoint
 app.get('/product/:id', async (req, res) => {
+  const t0 = Date.now();
   const id = req.params.id;
   try {
     const product = await collection.findOne({
@@ -75,9 +76,12 @@ app.get('/product/:id', async (req, res) => {
         { sku: id }
       ]
     });
+    const t1 = Date.now();
     if (product) {
+      res.set('X-Timing', JSON.stringify({ mongo_lookup_ms: t1 - t0, total_ms: t1 - t0 }));
       res.json(product);
     } else {
+      res.set('X-Timing', JSON.stringify({ mongo_lookup_ms: t1 - t0, total_ms: t1 - t0 }));
       res.status(404).json({ error: 'Product not found' });
     }
   } catch (err) {
@@ -88,6 +92,7 @@ app.get('/product/:id', async (req, res) => {
 
 // Proxy endpoint for getting product ids
 app.post('/api/embed', express.json(), async (req, res) => {
+  const t_total = Date.now();
   const query = req.query.q;
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 20;
@@ -98,10 +103,14 @@ app.post('/api/embed', express.json(), async (req, res) => {
 
   try {
     // 1. Get ALL relevant product IDs from the embedding service
+    const t1 = Date.now();
     const response = await axios.post(`${QUERY_URL}/embed-text`, { query });
     const allProductIds = response.data.products;
+    const t2 = Date.now();
 
     if (!allProductIds || allProductIds.length === 0) {
+      const t3 = Date.now();
+      console.log(`[TIMING] /api/embed | fastapi_call: ${t2-t1}ms | mongo_lookup: 0ms | total: ${t3-t1}ms | results: 0`);
       return res.json({
         total: 0,
         page,
@@ -112,29 +121,39 @@ app.post('/api/embed', express.json(), async (req, res) => {
 
     const total = allProductIds.length;
 
-    // 2. Apply pagination to the array of IDs BEFORE hitting the database
-
-    // 3. Fetch only the documents for the current page in a SINGLE database query
-    // This uses the $in operator to find all documents where product_id or sku is in our paginated list.
+    // 2. Fetch only the documents for the current page in a SINGLE database query
+    const t3 = Date.now();
     const results = await collection.find({
       $or: [
         { product_id: { $in: allProductIds } },
         { sku: { $in: allProductIds } }
       ]
     }).toArray();
-    
-    // (Optional but Recommended) 4. Preserve the order from the embedding service.
-    // The `$in` operator does not guarantee order. We re-sort the results to match the ML service's ranking.
+
+    // Preserve the order from the embedding service
     const resultsById = new Map(results.map(doc => [doc.product_id || doc.sku, doc]));
     const orderedResults = allProductIds.map(id => resultsById.get(id)).filter(Boolean);
+    const t4 = Date.now();
+
+    console.log(
+      `[TIMING] /api/embed | fastapi_call: ${t2-t1}ms | mongo_lookup: ${t4-t3}ms | total: ${t4-t_total}ms | results: ${orderedResults.length}`
+    );
+
+    res.set('X-Timing', JSON.stringify({
+      fastapi_call_ms: t2 - t1,
+      mongo_lookup_ms: t4 - t3,
+      total_ms: t4 - t_total,
+      results: orderedResults.length
+    }));
 
     res.json({
       total,
-      results: orderedResults // Send the correctly ordered results
+      results: orderedResults
     });
 
   } catch (err) {
-    // Check if the error is from Axios or our own logic
+    const t_err = Date.now();
+    console.error(`[TIMING] /api/embed | FAILED after ${t_err - t_total}ms | error: ${err.message}`);
     if (err.response) {
       console.error("Error from FastAPI service:", err.response.data);
       res.status(err.response.status || 500).json({ error: "Failed to get embeddings from service" });
@@ -147,6 +166,7 @@ app.post('/api/embed', express.json(), async (req, res) => {
 
 // Image search endpoint
 app.post('/api/image-search', upload.single('image'), async (req, res) => {
+  const t_total = Date.now();
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No image file provided' });
@@ -154,16 +174,20 @@ app.post('/api/image-search', upload.single('image'), async (req, res) => {
 
     // Convert image to base64 for the AI service
     const base64Image = req.file.buffer.toString('base64');
-    
+    const t1 = Date.now();
+    const image_type = req.file.mimetype;
+
     // Call the AI service for image search
     const response = await axios.post(`${QUERY_URL}/embed-image`, {
       image: base64Image,
-      image_type: req.file.mimetype
+      image_type: image_type
     });
+    const t2 = Date.now();
 
     const allProductIds = response.data.products;
 
     if (!allProductIds || allProductIds.length === 0) {
+      console.log(`[TIMING] /api/image-search | fastapi_call: ${t2-t1}ms | mongo_lookup: 0ms | total: ${t2-t_total}ms | results: 0`);
       return res.json({
         total: 0,
         results: []
@@ -173,16 +197,29 @@ app.post('/api/image-search', upload.single('image'), async (req, res) => {
     const total = allProductIds.length;
 
     // Fetch products from database
+    const t3 = Date.now();
     const results = await collection.find({
       $or: [
         { product_id: { $in: allProductIds } },
         { sku: { $in: allProductIds } }
       ]
     }).toArray();
-    
+
     // Preserve order from the embedding service
     const resultsById = new Map(results.map(doc => [doc.product_id || doc.sku, doc]));
     const orderedResults = allProductIds.map(id => resultsById.get(id)).filter(Boolean);
+    const t4 = Date.now();
+
+    console.log(
+      `[TIMING] /api/image-search | fastapi_call: ${t2-t1}ms | mongo_lookup: ${t4-t3}ms | total: ${t4-t_total}ms | results: ${orderedResults.length}`
+    );
+
+    res.set('X-Timing', JSON.stringify({
+      fastapi_call_ms: t2 - t1,
+      mongo_lookup_ms: t4 - t3,
+      total_ms: t4 - t_total,
+      results: orderedResults.length
+    }));
 
     res.json({
       total,
@@ -190,6 +227,8 @@ app.post('/api/image-search', upload.single('image'), async (req, res) => {
     });
 
   } catch (err) {
+    const t_err = Date.now();
+    console.error(`[TIMING] /api/image-search | FAILED after ${t_err - t_total}ms | error: ${err.message}`);
     console.error('Image search error:', err);
     if (err.response) {
       console.error("Error from FastAPI service:", err.response.data);

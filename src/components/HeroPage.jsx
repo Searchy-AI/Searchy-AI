@@ -1,46 +1,62 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Camera, Search, X, Upload, ArrowUp } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { Camera, Search, X, Upload, ArrowUp, Zap, Database, Shield, Code, BarChart3, Globe } from 'lucide-react';
 import { useImageSearch } from './ImageSearchContext';
+import { useDashboardAuth } from '../dashboard/DashboardLayout';
 
 // Search categories for the unified search system
 const searchCategories = [
-  { id: 'movies', label: 'Movies', icon: '◉' },
-  { id: 'profiles', label: 'Profiles', icon: '◎' },
   { id: 'products', label: 'Products', icon: '◇' },
+  { id: 'documents', label: 'Documents', icon: '◎' },
+  { id: 'images', label: 'Images', icon: '◉' },
 ];
 
 // Example search suggestions that rotate
 const searchExamples = [
-  'Find movies about redemption and hope',
-  'People who love minimalist design',
-  'Sustainable products for home office',
-  'Films with unreliable narrators',
-  'Experts in machine learning',
-  'Ergonomic standing desk setup',
+  'Find sustainable home office products',
+  'Wireless earbuds with long battery life',
+  'Minimalist desk accessories under $50',
+  'Ergonomic chairs for back support',
+  'Tech gadgets for remote work',
+  'Premium noise-canceling headphones',
 ];
 
-// Feature highlights
+// Feature highlights for SaaS
 const features = [
   {
     title: 'Semantic Understanding',
     description: 'Our AI understands context and meaning, not just keywords. Search naturally, get intelligent results.',
-    icon: '⬡',
+    icon: Zap,
   },
   {
-    title: 'Unified Search',
-    description: 'One powerful interface for movies, profiles, and products. Consistent experience across all content types.',
-    icon: '⬢',
+    title: 'Multi-tenant Architecture',
+    description: 'Isolated data per tenant with enterprise-grade security. Perfect for SaaS applications.',
+    icon: Shield,
   },
   {
     title: 'Vector Intelligence',
-    description: 'Built on state-of-the-art embeddings that capture nuance and relationships in your data.',
-    icon: '△',
+    description: 'Built on Cohere embeddings and Pinecone infrastructure for blazing-fast semantic search.',
+    icon: Database,
+  },
+  {
+    title: 'Simple API',
+    description: 'REST API with SDKs for JavaScript, Python, and more. Integrate in minutes, not days.',
+    icon: Code,
+  },
+  {
+    title: 'Analytics Dashboard',
+    description: 'Track search patterns, popular queries, and user behavior with built-in analytics.',
+    icon: BarChart3,
+  },
+  {
+    title: 'Global Infrastructure',
+    description: 'Deployed on edge networks worldwide for sub-100ms latency anywhere.',
+    icon: Globe,
   },
 ];
 
 // Trusted by logos (placeholder representations)
-const trustedBy = ['Linear', 'Vercel', 'Stripe', 'Notion', 'Figma'];
+const trustedBy = ['Y Combinator', 'Vercel', 'Stripe', 'Notion', 'Linear'];
 
 const HeroPage = () => {
   const navigate = useNavigate();
@@ -53,6 +69,9 @@ const HeroPage = () => {
   const [isDragOver, setIsDragOver] = useState(false);
   const [glowActive, setGlowActive] = useState(false);
   const { selectedImage, setSelectedImage } = useImageSearch();
+  
+  // Check if user is logged in
+  const { tenant } = useDashboardAuth();
 
   // Rotate placeholder text
   useEffect(() => {
@@ -158,12 +177,12 @@ const HeroPage = () => {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-[#FAFAFA]/90 backdrop-blur-md border-b border-[#E5E5E5]">
         <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
           {/* Logo */}
-          <div className="flex items-center space-x-2">
-            <div className="w-7 h-7 bg-[#1A1A1A] rounded-lg flex items-center justify-center">
-              <span className="text-white text-xs font-bold">S</span>
+          <Link to="/" className="flex items-center space-x-2">
+            <div className="w-8 h-8 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-lg flex items-center justify-center">
+              <Search className="w-4 h-4 text-white" />
             </div>
-            <span className="text-lg font-semibold tracking-tight">Semantix</span>
-          </div>
+            <span className="text-lg font-bold tracking-tight">Searchy</span>
+          </Link>
 
           {/* Nav Links */}
           <div className="hidden md:flex items-center space-x-8">
@@ -176,19 +195,39 @@ const HeroPage = () => {
             <a href="#pricing" className="text-sm text-[#666] hover:text-[#1A1A1A] transition-colors duration-200">
               Pricing
             </a>
-            <a href="#contact" className="text-sm text-[#666] hover:text-[#1A1A1A] transition-colors duration-200">
-              Contact
+            <a href="https://docs.searchy.ai" target="_blank" rel="noopener noreferrer" className="text-sm text-[#666] hover:text-[#1A1A1A] transition-colors duration-200">
+              Docs
             </a>
           </div>
 
           {/* CTA Buttons */}
           <div className="flex items-center space-x-3">
-            <button className="text-sm text-[#666] hover:text-[#1A1A1A] transition-colors duration-200 hidden sm:block">
-              Sign in
-            </button>
-            <button className="text-sm bg-[#1A1A1A] text-white px-4 py-2 rounded-lg hover:bg-[#333] transition-colors duration-200">
-              Get started
-            </button>
+            {tenant ? (
+              // User is logged in
+              <Link 
+                to="/dashboard" 
+                className="text-sm bg-[#1A1A1A] text-white px-4 py-2 rounded-lg hover:bg-[#333] transition-colors duration-200 flex items-center space-x-2"
+              >
+                <span>Dashboard</span>
+                <ArrowUp className="w-3.5 h-3.5 rotate-45" />
+              </Link>
+            ) : (
+              // User is not logged in
+              <>
+                <Link 
+                  to="/dashboard/login" 
+                  className="text-sm text-[#666] hover:text-[#1A1A1A] transition-colors duration-200 hidden sm:block"
+                >
+                  Sign in
+                </Link>
+                <Link 
+                  to="/dashboard/login?mode=register" 
+                  className="text-sm bg-[#1A1A1A] text-white px-4 py-2 rounded-lg hover:bg-[#333] transition-colors duration-200"
+                >
+                  Get started free
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </nav>
@@ -199,21 +238,21 @@ const HeroPage = () => {
           {/* Badge */}
           <div className="inline-flex items-center space-x-2 bg-white border border-[#E5E5E5] rounded-full px-4 py-1.5 mb-8 shadow-sm">
             <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
-            <span className="text-xs text-[#666] font-medium">Now in public beta</span>
+            <span className="text-xs text-[#666] font-medium">Now in public beta • Free to start</span>
           </div>
 
           {/* Main Headline */}
           <h1 className="text-5xl md:text-6xl lg:text-7xl font-semibold tracking-tight leading-[1.1] mb-6">
-            Intelligent search
+            AI-powered search
             <br />
-            <span className="text-[#999]">beyond keywords</span>
+            <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">for your SaaS</span>
           </h1>
 
           {/* Subtitle */}
           <p className="text-lg md:text-xl text-[#666] max-w-2xl mx-auto mb-12 leading-relaxed">
-            Semantix uses vector embeddings to understand meaning, not just text.
+            Add semantic search to any application in minutes.
             <br className="hidden md:block" />
-            Search how you think. Find what you mean.
+            Multi-tenant, secure, and infinitely scalable.
           </p>
 
           {/* Category Toggle - Secondary Navigation */}
@@ -389,7 +428,7 @@ const HeroPage = () => {
               </div>
               <div className="flex-1 flex justify-center">
                 <div className="bg-[#F0F0F0] rounded-lg px-4 py-1 text-xs text-[#999] font-mono">
-                  app.semantix.ai/search
+                  api.searchy.ai/v1/search
                 </div>
               </div>
             </div>
@@ -437,24 +476,24 @@ const HeroPage = () => {
 
       {/* Features Section */}
       <section id="features" className="py-24 px-6 bg-white">
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-semibold tracking-tight mb-4">
-              Built for understanding
+              Everything you need for search
             </h2>
             <p className="text-[#666] max-w-lg mx-auto">
-              Traditional search looks for keywords. Semantix understands concepts, relationships, and intent.
+              From prototype to production in minutes. No ML expertise required.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {features.map((feature, index) => (
               <div
                 key={index}
-                className="group p-8 rounded-2xl border border-[#E5E5E5] hover:border-[#CCC] hover:shadow-lg transition-all duration-300 bg-[#FAFAFA]"
+                className="group p-8 rounded-2xl border border-[#E5E5E5] hover:border-indigo-200 hover:shadow-lg hover:shadow-indigo-500/5 transition-all duration-300 bg-[#FAFAFA]"
               >
-                <div className="w-12 h-12 bg-[#1A1A1A] rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                  <span className="text-white text-lg">{feature.icon}</span>
+                <div className="w-12 h-12 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                  <feature.icon className="w-6 h-6 text-white" />
                 </div>
                 <h3 className="text-lg font-semibold mb-3">{feature.title}</h3>
                 <p className="text-[#666] text-sm leading-relaxed">{feature.description}</p>
@@ -478,12 +517,12 @@ const HeroPage = () => {
 
           <div className="grid md:grid-cols-3 gap-12">
             {[
-              { step: '01', title: 'Connect', desc: 'Point Semantix at your data sources — databases, APIs, or file systems.' },
-              { step: '02', title: 'Index', desc: 'We automatically generate semantic embeddings for all your content.' },
-              { step: '03', title: 'Search', desc: 'Your users search naturally and get results ranked by meaning, not keywords.' },
+              { step: '01', title: 'Create Index', desc: 'Define your schema with our visual builder or API. Support for text, images, and structured data.' },
+              { step: '02', title: 'Ingest Data', desc: 'Push records via REST API. We automatically generate embeddings with Cohere AI.' },
+              { step: '03', title: 'Search', desc: 'Query with text or images. Get semantic results ranked by meaning, not keywords.' },
             ].map((item, index) => (
               <div key={index} className="text-center">
-                <div className="text-5xl font-light text-[#E5E5E5] mb-4">{item.step}</div>
+                <div className="text-5xl font-light bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-4">{item.step}</div>
                 <h3 className="text-lg font-semibold mb-2">{item.title}</h3>
                 <p className="text-[#666] text-sm">{item.desc}</p>
               </div>
@@ -492,52 +531,98 @@ const HeroPage = () => {
         </div>
       </section>
 
+      {/* Code Example Section */}
+      <section className="py-24 px-6 bg-[#1A1A1A] text-white">
+        <div className="max-w-5xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            <div>
+              <h2 className="text-3xl md:text-4xl font-semibold tracking-tight mb-4">
+                Simple, powerful API
+              </h2>
+              <p className="text-[#999] mb-8">
+                Integrate semantic search with just a few lines of code. Works with any language or framework.
+              </p>
+              <Link
+                to="/dashboard/login?mode=register"
+                className="inline-flex items-center space-x-2 bg-white text-[#1A1A1A] px-6 py-3 rounded-xl font-medium hover:bg-[#F0F0F0] transition-colors duration-200"
+              >
+                <span>Get your API key</span>
+                <ArrowUp className="w-4 h-4 rotate-45" />
+              </Link>
+            </div>
+            <div className="bg-[#2A2A2A] rounded-2xl p-6 font-mono text-sm overflow-x-auto">
+              <div className="text-[#888] mb-2">// Search with natural language</div>
+              <div className="text-emerald-400">const</div>{' '}
+              <span className="text-purple-400">results</span>{' '}
+              <span className="text-white">=</span>{' '}
+              <span className="text-emerald-400">await</span>{' '}
+              <span className="text-blue-400">fetch</span>
+              <span className="text-white">(</span>
+              <span className="text-amber-300">'https://api.searchy.ai/v1/search'</span>
+              <span className="text-white">, {'{'}</span>
+              <div className="ml-4 text-white">method: <span className="text-amber-300">'POST'</span>,</div>
+              <div className="ml-4 text-white">headers: {'{'}</div>
+              <div className="ml-8 text-white"><span className="text-amber-300">'X-API-Key'</span>: <span className="text-purple-400">apiKey</span>,</div>
+              <div className="ml-8 text-white"><span className="text-amber-300">'Content-Type'</span>: <span className="text-amber-300">'application/json'</span></div>
+              <div className="ml-4 text-white">{'}'},</div>
+              <div className="ml-4 text-white">body: <span className="text-blue-400">JSON</span>.<span className="text-blue-400">stringify</span>({'{'}</div>
+              <div className="ml-8 text-white">index: <span className="text-amber-300">'products'</span>,</div>
+              <div className="ml-8 text-white">query: <span className="text-amber-300">'ergonomic chairs for back pain'</span>,</div>
+              <div className="ml-8 text-white">top_k: <span className="text-purple-400">10</span></div>
+              <div className="ml-4 text-white">{'}'})</div>
+              <span className="text-white">{'}'});</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Pricing Section */}
-      <section id="pricing" className="py-24 px-6 bg-[#1A1A1A] text-white">
+      <section id="pricing" className="py-24 px-6 bg-[#FAFAFA]">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-semibold tracking-tight mb-4">
               Simple, transparent pricing
             </h2>
-            <p className="text-[#999] max-w-lg mx-auto">
-              Start free, scale as you grow
+            <p className="text-[#666] max-w-lg mx-auto">
+              Start free, scale as you grow. No credit card required.
             </p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
             {[
-              { name: 'Starter', price: 'Free', desc: 'For side projects', features: ['10K queries/mo', '1 data source', 'Community support'] },
-              { name: 'Pro', price: '$49', desc: 'For growing teams', features: ['100K queries/mo', 'Unlimited sources', 'Priority support', 'Analytics'], featured: true },
-              { name: 'Enterprise', price: 'Custom', desc: 'For large organizations', features: ['Unlimited queries', 'Custom SLA', 'Dedicated support', 'On-premise option'] },
+              { name: 'Free', price: '$0', desc: 'For side projects', features: ['10K searches/mo', '1 index', '10K records', 'Community support', 'Basic analytics'] },
+              { name: 'Pro', price: '$49', desc: 'For growing teams', features: ['100K searches/mo', '10 indices', '1M records', 'Priority support', 'Advanced analytics', 'Webhooks'], featured: true },
+              { name: 'Enterprise', price: 'Custom', desc: 'For large organizations', features: ['Unlimited searches', 'Unlimited indices', 'Unlimited records', 'Dedicated support', 'SLA guarantee', 'Custom integrations'] },
             ].map((plan, index) => (
               <div
                 key={index}
                 className={`p-8 rounded-2xl ${plan.featured
-                    ? 'bg-white text-[#1A1A1A] shadow-2xl scale-105'
-                    : 'bg-[#2A2A2A] border border-[#333]'
+                    ? 'bg-gradient-to-br from-indigo-600 to-purple-600 text-white shadow-2xl shadow-indigo-500/30 scale-105'
+                    : 'bg-white border border-[#E5E5E5]'
                   }`}
               >
-                <div className="text-sm font-medium mb-2 opacity-60">{plan.name}</div>
+                <div className={`text-sm font-medium mb-2 ${plan.featured ? 'text-indigo-200' : 'text-[#999]'}`}>{plan.name}</div>
                 <div className="text-4xl font-semibold mb-1">{plan.price}</div>
-                <div className="text-sm opacity-60 mb-6">{plan.desc}</div>
+                <div className={`text-sm mb-6 ${plan.featured ? 'text-indigo-200' : 'text-[#999]'}`}>{plan.desc}</div>
                 <ul className="space-y-3 mb-8">
                   {plan.features.map((feature, i) => (
                     <li key={i} className="flex items-center text-sm">
-                      <svg className="w-4 h-4 mr-2 opacity-60" fill="currentColor" viewBox="0 0 20 20">
+                      <svg className={`w-4 h-4 mr-2 ${plan.featured ? 'text-indigo-200' : 'text-indigo-600'}`} fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                       </svg>
                       {feature}
                     </li>
                   ))}
                 </ul>
-                <button
-                  className={`w-full py-3 rounded-xl font-medium transition-colors duration-200 ${plan.featured
-                      ? 'bg-[#1A1A1A] text-white hover:bg-[#333]'
-                      : 'bg-white text-[#1A1A1A] hover:bg-[#F0F0F0]'
+                <Link
+                  to={plan.name === 'Enterprise' ? '#contact' : '/dashboard/login?mode=register'}
+                  className={`block w-full py-3 rounded-xl font-medium transition-colors duration-200 text-center ${plan.featured
+                      ? 'bg-white text-indigo-600 hover:bg-indigo-50'
+                      : 'bg-[#1A1A1A] text-white hover:bg-[#333]'
                     }`}
                 >
-                  Get started
-                </button>
+                  {plan.name === 'Enterprise' ? 'Contact sales' : 'Get started'}
+                </Link>
               </div>
             ))}
           </div>
@@ -545,58 +630,78 @@ const HeroPage = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-24 px-6">
+      <section className="py-24 px-6 border-t border-[#E5E5E5]">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-3xl md:text-4xl font-semibold tracking-tight mb-4">
-            Ready to search smarter?
+            Ready to add AI search?
           </h2>
           <p className="text-[#666] mb-8 max-w-lg mx-auto">
-            Join thousands of developers building intelligent search experiences with Semantix.
+            Join thousands of developers building intelligent search experiences with Searchy.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <button className="bg-[#1A1A1A] text-white px-8 py-4 rounded-xl font-medium hover:bg-[#333] transition-colors duration-200 flex items-center space-x-2">
+            <Link 
+              to="/dashboard/login?mode=register"
+              className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-4 rounded-xl font-medium hover:opacity-90 transition-opacity duration-200 flex items-center space-x-2"
+            >
               <span>Start building for free</span>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-              </svg>
-            </button>
-            <button className="text-[#666] hover:text-[#1A1A1A] px-8 py-4 font-medium transition-colors duration-200">
+              <ArrowUp className="w-4 h-4 rotate-45" />
+            </Link>
+            <a 
+              href="https://docs.searchy.ai"
+              target="_blank"
+              rel="noopener noreferrer" 
+              className="text-[#666] hover:text-[#1A1A1A] px-8 py-4 font-medium transition-colors duration-200"
+            >
               View documentation
-            </button>
+            </a>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer id="contact" className="py-12 px-6 border-t border-[#E5E5E5]">
+      <footer id="contact" className="py-12 px-6 border-t border-[#E5E5E5] bg-white">
         <div className="max-w-5xl mx-auto">
           <div className="grid md:grid-cols-4 gap-8 mb-12">
             {/* Brand */}
             <div>
-              <div className="flex items-center space-x-2 mb-4">
-                <div className="w-7 h-7 bg-[#1A1A1A] rounded-lg flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">S</span>
+              <Link to="/" className="flex items-center space-x-2 mb-4">
+                <div className="w-8 h-8 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-lg flex items-center justify-center">
+                  <Search className="w-4 h-4 text-white" />
                 </div>
-                <span className="text-lg font-semibold tracking-tight">Semantix</span>
-              </div>
+                <span className="text-lg font-bold tracking-tight">Searchy</span>
+              </Link>
               <p className="text-sm text-[#999]">
-                Intelligent search infrastructure for modern applications.
+                AI-powered search infrastructure for modern SaaS applications.
               </p>
             </div>
 
             {/* Links */}
             {[
-              { title: 'Product', links: ['Features', 'Pricing', 'Docs', 'API'] },
-              { title: 'Company', links: ['About', 'Blog', 'Careers', 'Contact'] },
-              { title: 'Legal', links: ['Privacy', 'Terms', 'Security'] },
+              { title: 'Product', links: [
+                { name: 'Features', href: '#features' },
+                { name: 'Pricing', href: '#pricing' },
+                { name: 'Docs', href: 'https://docs.searchy.ai' },
+                { name: 'API Reference', href: 'https://docs.searchy.ai/api' },
+              ]},
+              { title: 'Company', links: [
+                { name: 'About', href: '#' },
+                { name: 'Blog', href: '#' },
+                { name: 'Careers', href: '#' },
+                { name: 'Contact', href: 'mailto:hello@searchy.ai' },
+              ]},
+              { title: 'Legal', links: [
+                { name: 'Privacy', href: '#' },
+                { name: 'Terms', href: '#' },
+                { name: 'Security', href: '#' },
+              ]},
             ].map((section, index) => (
               <div key={index}>
                 <div className="text-sm font-semibold mb-4">{section.title}</div>
                 <ul className="space-y-2">
                   {section.links.map((link, i) => (
                     <li key={i}>
-                      <a href="#" className="text-sm text-[#666] hover:text-[#1A1A1A] transition-colors duration-200">
-                        {link}
+                      <a href={link.href} className="text-sm text-[#666] hover:text-[#1A1A1A] transition-colors duration-200">
+                        {link.name}
                       </a>
                     </li>
                   ))}
@@ -606,11 +711,15 @@ const HeroPage = () => {
           </div>
 
           <div className="flex flex-col md:flex-row items-center justify-between pt-8 border-t border-[#E5E5E5]">
-            <p className="text-sm text-[#999]">© 2026 Semantix. All rights reserved.</p>
+            <p className="text-sm text-[#999]">© 2025 Searchy. All rights reserved.</p>
             <div className="flex items-center space-x-4 mt-4 md:mt-0">
-              {['Twitter', 'GitHub', 'Discord'].map((social) => (
-                <a key={social} href="#" className="text-sm text-[#999] hover:text-[#1A1A1A] transition-colors duration-200">
-                  {social}
+              {[
+                { name: 'Twitter', href: 'https://twitter.com/searchy_ai' },
+                { name: 'GitHub', href: 'https://github.com/searchy-ai' },
+                { name: 'Discord', href: 'https://discord.gg/searchy' },
+              ].map((social) => (
+                <a key={social.name} href={social.href} target="_blank" rel="noopener noreferrer" className="text-sm text-[#999] hover:text-[#1A1A1A] transition-colors duration-200">
+                  {social.name}
                 </a>
               ))}
             </div>

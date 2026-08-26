@@ -11,7 +11,7 @@ function useQuery() {
   return new URLSearchParams(useLocation().search);
 }
 
-const BACKEND_URL = 'http://localhost:4000';
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
 
 const SearchPage = ({
   searchTerm,
@@ -52,6 +52,7 @@ const SearchPage = ({
 
     const fetchData = async () => {
       setLoading(true);
+      const t_start = performance.now();
       try {
         let res;
         if (isImageSearch && selectedImage) {
@@ -67,13 +68,40 @@ const SearchPage = ({
           // Handle text search
           res = await axios.post(`${BACKEND_URL}/api/embed?q=${encodeURIComponent(urlSearchTerm)}`);
         }
-        
+
+        const t_api = performance.now();
         const data = res.data;
+
+        if (res.headers['x-timing']) {
+          try {
+            const timing = JSON.parse(res.headers['x-timing']);
+            console.log(
+              `%c[FRONTEND TIMING]%c "${urlSearchTerm || 'image search'}" — ` +
+              `total: ${timing.total_ms.toFixed(1)}ms | ` +
+              `fastapi_call: ${timing.fastapi_call_ms?.toFixed(1) || 'N/A'}ms | ` +
+              `mongo_lookup: ${timing.mongo_lookup_ms?.toFixed(1) || 'N/A'}ms`,
+              'color: #22c55e; font-weight: bold',
+              'color: inherit'
+            );
+          } catch(e) { /* ignore parse errors */ }
+        }
+
+        const t_process = performance.now();
         setAllProducts(data.results || []);
         setTotal(data.total || 0);
         if (isImageSearch) {
           setImageSearchResults(data);
         }
+
+        const t_render = performance.now();
+        console.log(
+          `[FRONTEND] search="${urlSearchTerm || 'image'}" — ` +
+          `api_roundtrip: ${(t_api-t_start).toFixed(1)}ms | ` +
+          `state_update: ${(t_process-t_api).toFixed(1)}ms | ` +
+          `render_prep: ${(t_render-t_process).toFixed(1)}ms | ` +
+          `total: ${(t_render-t_start).toFixed(1)}ms | ` +
+          `results: ${(data.results||[]).length}`
+        );
       } catch (err) {
         console.error("Fetch error: ", err);
         setAllProducts([]);
